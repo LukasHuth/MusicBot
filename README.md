@@ -19,3 +19,11 @@
 ## ?load <name>
 
 ### load queue
+
+## ?help
+
+### view all commnds
+
+## ?next
+
+### play next track

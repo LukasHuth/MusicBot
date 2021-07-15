@@ -14,6 +14,14 @@ player = {};
 
 connection = {};
 
+/*
+
+    Google doc:
+
+    https://developers.google.com/youtube/v3/docs/videos/list
+
+*/
+
 bot.on("ready", () => {
     // console.log(`${bot.user.username}`);
 });
@@ -89,6 +97,24 @@ bot.on("message", async message => {
                 }
             })
         }
+    } else if(message.content.toLowerCase().startsWith("?help")) {
+        commands= [
+            "?play [videourl | playlisturl]",
+            "?pause",
+            "?queue",
+            "?load <name>",
+            "?save <name>",
+            "?jumpto <position>",
+            "?next",
+            "?clear",
+            "?loop",
+            "?stop",
+            "?help"
+        ];
+        out = "Available commands:\n";
+        for(elm in commands) {
+            out += "  -"+commands[elm] + "\n";
+        }
     } else if(message.content.toLowerCase().startsWith("?save")) {
         // console.log("test");
         queuename = message.content.toLowerCase().replace("?save ", "");
@@ -113,8 +139,7 @@ bot.on("message", async message => {
                 list[message.guild.id] = data.queues[message.guild.id][queuename];
             }
         }
-    }
-    else if(message.content.toLowerCase().startsWith("?jumpto ")) {
+    } else if(message.content.toLowerCase().startsWith("?jumpto ")) {
         number = message.content.toLowerCase().replace("?jumpto ", "");
         if(isNaN(number)) {
             message.channel.send(
@@ -126,6 +151,7 @@ bot.on("message", async message => {
             return;
         }
         number = Number(number);
+        number--;
         if(!list.hasOwnProperty(message.guild.id)) {
             message.channel.send(
                 new Discord.MessageEmbed()
@@ -160,8 +186,42 @@ bot.on("message", async message => {
         connection[message.guild.id] = await message.member.voice.channel.join();
         // last[message.guild.id] = 0;
         play(list[message.guild.id][last[message.guild.id]], connection[message.guild.id], message.guild.id);
-    }
-    else if(message.content.toLowerCase().startsWith("?queue")) {
+    } else if(message.content.toLowerCase().startsWith('?next')) {
+        if(!list.hasOwnProperty(message.guild.id)) {
+            message.channel.send(
+                new Discord.MessageEmbed()
+                .setColor("#FF0000")
+                .setTitle(`Queue is empty`)
+                .setThumbnail(message.author.displayAvatarURL())
+                .setDescription(`Add music to queue to play music`)
+            );
+            return;
+        }
+        if(list[message.guild.id].length == 0) {
+            message.channel.send(
+                new Discord.MessageEmbed()
+                .setColor("#FF0000")
+                .setTitle(`Queue is empty`)
+                .setThumbnail(message.author.displayAvatarURL())
+                .setDescription(`Add music to queue to play music`)
+            );
+            return;
+        }
+        if(!message.member.voice.channelID) {
+            message.channel.send(
+                new Discord.MessageEmbed()
+                .setColor("#FF0000")
+                .setTitle(`You must be in a voice Channel`)
+                .setThumbnail(message.author.displayAvatarURL())
+                .setDescription(`Please join a voice to play audio`)
+            );
+            return;
+        }
+
+        connection[message.guild.id] = await message.member.voice.channel.join();
+        last[message.guild.id]++;
+        play(list[message.guild.id][last[message.guild.id]], connection[message.guild.id], message.guild.id);
+    } else if(message.content.toLowerCase().startsWith("?queue")) {
         if(!list.hasOwnProperty(message.guild.id)) {
             message.channel.send(
                 new Discord.MessageEmbed()
@@ -189,9 +249,19 @@ bot.on("message", async message => {
         start = last[message.guild.id]-5;
         start_0 = start;
         start = (start < 0) ? 0 : start;
+        // console.log(start);
+        // console.log(start_0);
         end = last[message.guild.id]+5-(start_0-start);
-        end = (end < list[message.guild.id].length-1) ? list[message.guild.id].length-1 : end;
-        if(start > 0) out += ""+start+" before";
+        // console.log(end);
+        if(end > list[message.guild.id].length-1) {
+            end = list[message.guild.id].length-1;
+            start = start+(end-list[message.guild.id].length-1);
+        }
+        // end = (end > list[message.guild.id].length-1) ? list[message.guild.id].length-1 : end;
+        // console.log(list[message.guild.id].length-1);
+        // console.log(end);
+        // console.log(start);
+        if(start > 0) out += ""+start+" before\n";
         // console.log(start);
         // console.log(end);
         getYoutubeTitle(list[message.guild.id][last[message.guild.id]], function (err, title) {
@@ -208,20 +278,22 @@ bot.on("message", async message => {
         for(i=0;i<((list[message.guild.id].length<10) ? list[message.guild.id].length : 10);i++) {
             all[i] = false;
         }
+        ii = 0;
         for(i=0;i<((list[message.guild.id].length<10) ? list[message.guild.id].length : 10);i++) {
             google.youtube('v3').videos.list({
                 key: googletoken,
                 part: 'snippet',
-                id: list[message.guild.id][i],
+                id: list[message.guild.id][start+i],
                 maxResults: 200
             }).then(async response => {
+                ii++;
                 ytid = response.data.items[0].id;
                 ytidindex = list[message.guild.id].indexOf(ytid);
                 alltitle[ytidindex-start] = response.data.items[0].snippet.title;
                 all[ytidindex-start] = true;
                 if(alltitle.includes("")) finished = false;
                 // console.log(alltitle.indexOf(""));
-                if(alltitle.indexOf("") == -1) finished = true;
+                if(ii == 10) finished = true;
                 // console.log(alltitle);
                 if(finished) {
                     for(j=0;j<((list[message.guild.id].length<10) ? list[message.guild.id].length : 10);j++) {
@@ -229,13 +301,14 @@ bot.on("message", async message => {
                         if(j == last[message.guild.id]-start) out += "      # currently here";
                         out += "\n";
                     }
-                    if(end < list[message.guild.id].length-1) out += (list[message.guild.id].length-1-end) + " more";
+                    // console.log(end);
+                    // console.log(list[message.guild.id].length);
+                    if(end < list[message.guild.id].length-1) out += (list[message.guild.id].length-1-end) + " more\n";
                     message.channel.send(out+"```");
                 }
             })
         }
-    }
-    else if(message.content.toLowerCase().startsWith('?play')) {
+    } else if(message.content.toLowerCase().startsWith('?play')) {
         if(player.hasOwnProperty(message.guild.id)) player[message.guild.id].resume();
         if(!list.hasOwnProperty(message.guild.id)) {
             message.channel.send(
@@ -275,8 +348,7 @@ bot.on("message", async message => {
         if(list.hasOwnProperty(message.guild.id)) {
             list[message.guild.id] = [];
         }
-    }
-    else if(message.content.toLowerCase().startsWith("?loop")) {
+    } else if(message.content.toLowerCase().startsWith("?loop")) {
         if(loop[message.guild.id]) {
             loop[message.guild.id] = false;
             message.channel.send(
@@ -296,9 +368,10 @@ bot.on("message", async message => {
                 .setDescription(``)
             );
         }
-    }
-    else if(message.content.toLowerCase().startsWith("?pause")) if(player.hasOwnProperty(message.guild.id)) player[message.guild.id].pause();
-    else if(message.content.toLowerCase().startsWith("?stop")){
+    } else if(message.content.toLowerCase().startsWith("?pause")) {
+        if(player.hasOwnProperty(message.guild.id))
+            player[message.guild.id].pause();
+    } else if(message.content.toLowerCase().startsWith("?stop")){
         if(connection.hasOwnProperty(message.guild.id)) {
             last[message.guild.id] = 0;
             connection[message.guild.id].channel.leave();
