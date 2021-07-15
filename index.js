@@ -4,7 +4,7 @@ const { token } = require("./botconfig");
 const ytdl = require("ytdl-core");
 const getYoutubeTitle = require('get-youtube-title');
 const { googletoken } = require("./settings.json")
-const { google } = require("googleapis");
+const { google, jobs_v3p1beta1 } = require("googleapis");
 const { MessageButton } = require("discord-buttons");
 const bot = new Discord.Client();
 require("discord-buttons")(bot);
@@ -59,20 +59,55 @@ newQueue = async (page, channel) => {
     return msg;
 }
 editQueue = async (page, message) => {
+    openvideobutton = new MessageButton().setStyle("url").setLabel("Open Track").setURL("https://youtu.be/"+list[message.guild.id][last[message.guild.id]]);
     queuepos[message.guild.id] = page;
     out_1 = "";
+    out_1 = "```glsl\n";
+    out_1 += "Queue contains:\n";
+    out = out_1;
     size_0 = 10;
     for(i=0;i<10;i++) {
         j = Math.floor(last[message.guild.id] / size_0);
         j = page;
         pos = size_0*j+i;
         if(size_0*j+size_0-1 > list[message.guild.id].length-1) pos = list[message.guild.id].length-size_0+i;
+        ii = 0;
+        btten = list[message.guild.id].length-1 >= 10;
+        names = [];
+        for(i_0 = 0; i_0 < ((btten) ? 10 : list[message.guild.id].length); i_0++) names[i_0] = "";
+        google.youtube('v3').videos.list({
+            key: googletoken,
+            id: list[message.guild.id][pos],
+            part: 'snippet',
+        }).then(async response => {
+            ii++;
+            ytidtitle = response.data.items[0].snippet.title;
+            ytid = response.data.items[0].id;
+            start = size_0*j;
+            if(start+10 > list[message.guild.id].length) start = list[message.guild.id].length-10;
+            idpos = list[message.guild.id].indexOf(ytid)-(start);
+            // console.log(idpos);
+            // console.log(ytid);
+            names[idpos] = ytidtitle;
+            if(ii == names.length) {
+                if(start > 0) out += start + " before\n";
+                for(j_1 = 0; j_1 < names.length; j_1++) {
+                    out += (start+j_1+1)+".   " + names[j_1];
+                    if(start+j_1 == last[message.guild.id]) out += "    # currently playing";
+                    out += "\n";
+                }
+                if(start+10 < list[message.guild.id].length) out += (list[message.guild.id].length-start-10) + " more";
+                out += "\n```";
+                await message.edit(out, {buttons: [firstpage, prevpage, nextpage, lastpage, openvideobutton]});
+            }
+        })
         out_1 += (pos+1) + ".   ";
-        out_1 += list[message.guild.id][pos] + ((pos == last[message.guild.id]) ? "  <---- now" : "");
+        out_1 += list[message.guild.id][pos] + ((pos == last[message.guild.id]) ? "  # currently here" : "");
         out_1 += "\n";
     }
-    msg = await message.edit(out_1, {buttons: [firstpage, prevpage, nextpage, lastpage, openvideobutton]});
-    return msg;
+    out_1 += "\n```";
+    // msg = await message.edit(out_1, {buttons: [firstpage, prevpage, nextpage, lastpage, openvideobutton]});
+    // return msg;
 }
 
 bot.on("message", async message => {
@@ -266,7 +301,7 @@ bot.on("message", async message => {
         last[message.guild.id]++;
         play(list[message.guild.id][last[message.guild.id]], connection[message.guild.id], message.guild.id);
     } else if(message.content.toLowerCase().startsWith("?queue")) {
-        // add queue navigation !important
+        // important:  same queue orde as editQueue
         if(!list.hasOwnProperty(message.guild.id)) {
             message.channel.send(
                 new Discord.MessageEmbed()
@@ -303,8 +338,8 @@ bot.on("message", async message => {
         // console.log(start_0);
         end = last[message.guild.id]+5-(start_0-start);
         // console.log(end);
-        if(end > list[message.guild.id].length-1) {
-            end = list[message.guild.id].length-1;
+        if(end > list[message.guild.id].length) {
+            end = list[message.guild.id].length;
             if(list[message.guild.id].length < 10) start = 0;
             start = end-10;
         }
@@ -348,13 +383,13 @@ bot.on("message", async message => {
                 // console.log(alltitle);
                 if(finished) {
                     for(j=0;j<((list[message.guild.id].length<10) ? list[message.guild.id].length : 10);j++) {
-                        out += "- "+alltitle[j];
+                        out += (start+j+1)+".   "+alltitle[j];
                         if(j == last[message.guild.id]-start) out += "      # currently here";
                         out += "\n";
                     }
                     // console.log(end);
                     // console.log(list[message.guild.id].length);
-                    if(end < list[message.guild.id].length-1) out += (list[message.guild.id].length-1-end) + " more\n";
+                    if(end < list[message.guild.id].length) out += (list[message.guild.id].length-end) + " more\n";
                     buttonlist = [];
                     buttonlist[buttonlist.length] = firstpage;
                     buttonlist[buttonlist.length] = prevpage;
@@ -362,7 +397,12 @@ bot.on("message", async message => {
                     buttonlist[buttonlist.length] = lastpage;
                     buttonlist[buttonlist.length] = openvideobutton;
                     let msg = await message.channel.send(out+"```", {buttons: buttonlist});
-                    const msg_0 = await newQueue(Math.floor(last[message.guild.id] / 10), message.channel);
+                    possible = list[message.guild.id].length/10;
+                    if(Math.floor(possible) != possible) possible = Math.floor(possible)+1;
+                    else possible = Math.floor(possible);
+                    queuepos[message.guild.id] = Math.floor(last[message.guild.id] / 10);
+                    if(last[message.guild.id] > list[message.guild.id].length-5) queuepos[message.guild.id] = Math.floor(last[message.guild.id] / 10) + 1;
+                    // const msg_0 = await newQueue(Math.floor(last[message.guild.id] / 10), message.channel);
                 }
             })
         }
@@ -460,7 +500,7 @@ bot.on('clickButton', async button => {
     console.log(button.id);
     if(button.id == "firstPage") {
         button.reply.defer();
-        console.log(queuepos[button.message.guild.id]);
+        // console.log(queuepos[button.message.guild.id]);
         editQueue(0, button.message);
     }
     if(button.id == "lastPage") {
@@ -468,7 +508,7 @@ bot.on('clickButton', async button => {
         possible = list[button.message.guild.id].length/10;
         if(Math.floor(possible) != possible) possible = Math.floor(possible)+1;
         else possible = Math.floor(possible);
-        console.log(queuepos[button.message.guild.id]);
+        // console.log(queuepos[button.message.guild.id]);
         editQueue(possible-1, button.message);
     }
     if(button.id == "nextPage") {
@@ -479,16 +519,16 @@ bot.on('clickButton', async button => {
         // console.log(queuepos);
         pos = queuepos[button.message.guild.id]+1;
         pos = (pos>possible-1) ? possible-1 : pos;
-        console.log(queuepos[button.message.guild.id]);
-        console.log(pos);
+        // console.log(queuepos[button.message.guild.id]);
+        // console.log(pos);
         editQueue(pos, button.message);
     }
     if(button.id == "prevPage") {
         button.reply.defer();
         pos = queuepos[button.message.guild.id]-1;
-        pos = (pos < 0) ? pos : 0;
-        console.log(queuepos[button.message.guild.id]);
-        console.log(pos);
+        pos = (pos < 0) ? 0 : pos;
+        // console.log(queuepos[button.message.guild.id]);
+        // console.log(pos);
         editQueue(pos, button.message);
     }
 });
