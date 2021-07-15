@@ -56,7 +56,7 @@ bot.on("message", async message => {
             if(!message.member.voice.channelID) {
                 message.channel.send(
                     new Discord.MessageEmbed()
-                    .setColor("red")
+                    .setColor("#FF0000")
                     .setTitle(`You must be in a voice Channel`)
                     .setThumbnail(message.author.displayAvatarURL())
                     .setDescription(`Please join a voice to play audio`)
@@ -129,7 +129,7 @@ bot.on("message", async message => {
         if(!list.hasOwnProperty(message.guild.id)) {
             message.channel.send(
                 new Discord.MessageEmbed()
-                .setColor("red")
+                .setColor("#FF0000")
                 .setTitle(`Queue is empty`)
                 .setThumbnail(message.author.displayAvatarURL())
                 .setDescription(`Add music to queue to play music`)
@@ -139,7 +139,7 @@ bot.on("message", async message => {
         if(list[message.guild.id].length == 0) {
             message.channel.send(
                 new Discord.MessageEmbed()
-                .setColor("red")
+                .setColor("#FF0000")
                 .setTitle(`Queue is empty`)
                 .setThumbnail(message.author.displayAvatarURL())
                 .setDescription(`Add music to queue to play music`)
@@ -149,7 +149,7 @@ bot.on("message", async message => {
         if(list[message.guild.id].length <= number) {
             message.channel.send(
                 new Discord.MessageEmbed()
-                .setColor("red")
+                .setColor("#FF0000")
                 .setTitle(`Queue is not that large`)
                 .setThumbnail(message.author.displayAvatarURL())
                 .setDescription(`Add music to queue to play music`)
@@ -165,7 +165,7 @@ bot.on("message", async message => {
         if(!list.hasOwnProperty(message.guild.id)) {
             message.channel.send(
                 new Discord.MessageEmbed()
-                .setColor("red")
+                .setColor("#FF0000")
                 .setTitle(`Queue is empty`)
                 .setThumbnail(message.author.displayAvatarURL())
                 .setDescription(`Add music to queue to play music`)
@@ -175,7 +175,7 @@ bot.on("message", async message => {
         if(list[message.guild.id].length == 0)  {
             message.channel.send(
                 new Discord.MessageEmbed()
-                .setColor("red")
+                .setColor("#FF0000")
                 .setTitle(`Queue is empty`)
                 .setThumbnail(message.author.displayAvatarURL())
                 .setDescription(`Add music to queue to play music`)
@@ -190,6 +190,8 @@ bot.on("message", async message => {
         start_0 = start;
         start = (start < 0) ? 0 : start;
         end = last[message.guild.id]+5-(start_0-start);
+        end = (end < list[message.guild.id].length-1) ? list[message.guild.id].length-1 : end;
+        if(start > 0) out += ""+start+" before";
         // console.log(start);
         // console.log(end);
         getYoutubeTitle(list[message.guild.id][last[message.guild.id]], function (err, title) {
@@ -227,6 +229,7 @@ bot.on("message", async message => {
                         if(j == last[message.guild.id]-start) out += "      # currently here";
                         out += "\n";
                     }
+                    if(end < list[message.guild.id].length-1) out += (list[message.guild.id].length-1-end) + " more";
                     message.channel.send(out+"```");
                 }
             })
@@ -237,7 +240,7 @@ bot.on("message", async message => {
         if(!list.hasOwnProperty(message.guild.id)) {
             message.channel.send(
                 new Discord.MessageEmbed()
-                .setColor("red")
+                .setColor("#FF0000")
                 .setTitle(`Queue is empty`)
                 .setThumbnail(message.author.displayAvatarURL())
                 .setDescription(`Add music to queue to play music`)
@@ -247,7 +250,7 @@ bot.on("message", async message => {
         if(list[message.guild.id].length == 0) {
             message.channel.send(
                 new Discord.MessageEmbed()
-                .setColor("red")
+                .setColor("#FF0000")
                 .setTitle(`Queue is empty`)
                 .setThumbnail(message.author.displayAvatarURL())
                 .setDescription(`Add music to queue to play music`)
@@ -257,7 +260,7 @@ bot.on("message", async message => {
         if(!message.member.voice.channelID) {
             message.channel.send(
                 new Discord.MessageEmbed()
-                .setColor("red")
+                .setColor("#FF0000")
                 .setTitle(`You must be in a voice Channel`)
                 .setThumbnail(message.author.displayAvatarURL())
                 .setDescription(`Please join a voice to play audio`)
@@ -278,7 +281,7 @@ bot.on("message", async message => {
             loop[message.guild.id] = false;
             message.channel.send(
                 new Discord.MessageEmbed()
-                .setColor("red")
+                .setColor("#FF0000")
                 .setTitle(`Loop disabled`)
                 .setThumbnail(message.author.displayAvatarURL())
                 .setDescription(``)
@@ -287,7 +290,7 @@ bot.on("message", async message => {
             loop[message.guild.id] = true;
             message.channel.send(
                 new Discord.MessageEmbed()
-                .setColor("green")
+                .setColor("#00FF00")
                 .setTitle(`Loop Enabled`)
                 .setThumbnail(message.author.displayAvatarURL())
                 .setDescription(``)
