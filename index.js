@@ -255,7 +255,7 @@ bot.on("message", async message => {
         // console.log(end);
         if(end > list[message.guild.id].length-1) {
             end = list[message.guild.id].length-1;
-            start = start+(end-list[message.guild.id].length-1);
+            start = end-10;
         }
         // end = (end > list[message.guild.id].length-1) ? list[message.guild.id].length-1 : end;
         // console.log(list[message.guild.id].length-1);
