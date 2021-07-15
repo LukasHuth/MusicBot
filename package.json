@@ -9,6 +9,7 @@
   "author": "LukasHuth",
   "license": "ISC",
   "dependencies": {
+    "discord-buttons": "^4.0.0",
     "discord-streaming": "^2.3.1",
     "discord.js": "^12.5.3",
     "get-youtube-title": "^1.0.1",
