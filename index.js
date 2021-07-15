@@ -350,11 +350,18 @@ bot.on("message", async message => {
         if(start > 0) out += ""+start+" before\n";
         // console.log(start);
         // console.log(end);
-        getYoutubeTitle(list[message.guild.id][last[message.guild.id]], function (err, title) {
-            if(err) return console.log(err);
-            current = title;
-            // console.log(current);
-        });
+        // getYoutubeTitle(list[message.guild.id][last[message.guild.id]], function (err, title) {
+        //     if(err) return console.log(err);
+        //     current = title;
+        //     // console.log(current);
+        // });
+        google.youtube('v3').videos.list({
+            key: googletoken,
+            part: 'snippet',
+            id: list[message.guild.id][last[message.guild.id]]
+        }).then(response => {
+            current = response.data.items[0].snippet.title;
+        })
         finished = false;
         all = [];
         alltitle = [];
