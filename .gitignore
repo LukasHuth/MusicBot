@@ -1,0 +1,7 @@
+settings.json
+botconfig.json
+./settings.json
+./botconfig.json
+./node_modules/
+./node_modules
+node_modules/
