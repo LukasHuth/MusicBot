@@ -4,16 +4,16 @@ const { token } = require("./botconfig");
 const ytdl = require("ytdl-core");
 const getYoutubeTitle = require('get-youtube-title');
 const { googletoken } = require("./settings.json")
-const { google, jobs_v3p1beta1 } = require("googleapis");
+const { google } = require("googleapis");
 const { MessageButton } = require("discord-buttons");
 const bot = new Discord.Client();
 require("discord-buttons")(bot);
 
 let openvideobutton;
-let firstpage;
-let prevpage;
-let nextpage;
-let lastpage;
+let firstpage = new MessageButton().setStyle("blurple").setID("firstPage").setLabel("<<");
+let prevpage = new MessageButton().setStyle("blurple").setID("prevPage").setLabel("<");
+let nextpage = new MessageButton().setStyle("blurple").setID("nextPage").setLabel(">");
+let lastpage = new MessageButton().setStyle("blurple").setID("lastPage").setLabel(">>");
 
 last = {};
 loop = {};
@@ -35,6 +35,28 @@ queuepos = {};
 bot.on("ready", () => {
     console.log(`${bot.user.username}`);
 });
+
+editButtons = (pos, possible) => {
+    if(pos == 0) {
+        firstpage.setStyle("grey").setDisabled(true);
+        prevpage.setStyle("grey").setDisabled(true);
+        lastpage.setStyle("blurple").setDisabled(false);
+        nextpage.setStyle("blurple").setDisabled(false);
+        return;
+    }
+    if(pos == possible-1) {
+        firstpage.setStyle("blurple").setDisabled(false);
+        prevpage.setStyle("blurple").setDisabled(false);
+        lastpage.setStyle("grey").setDisabled(true);
+        nextpage.setStyle("grey").setDisabled(true);
+        return;
+    }
+    firstpage.setStyle("blurple").setDisabled(false);
+    prevpage.setStyle("blurple").setDisabled(false);
+    lastpage.setStyle("blurple").setDisabled(false);
+    nextpage.setStyle("blurple").setDisabled(false);
+    return;
+}
 
 addMusic = (id, serverId) => {
     if(!list.hasOwnProperty(serverId)) list[serverId] = [];
@@ -67,7 +89,7 @@ editQueue = async (page, message) => {
     out = out_1;
     size_0 = 10;
     for(i=0;i<10;i++) {
-        j = Math.floor(last[message.guild.id] / size_0);
+        // j = Math.floor(last[message.guild.id] / size_0);
         j = page;
         pos = size_0*j+i;
         if(size_0*j+size_0-1 > list[message.guild.id].length-1) pos = list[message.guild.id].length-size_0+i;
@@ -93,7 +115,7 @@ editQueue = async (page, message) => {
                 if(start > 0) out += start + " before\n";
                 for(j_1 = 0; j_1 < names.length; j_1++) {
                     out += (start+j_1+1)+".   " + names[j_1];
-                    if(start+j_1 == last[message.guild.id]) out += "    # currently playing";
+                    if(last.hasOwnProperty(message.guild.id)) if(start+j_1 == last[message.guild.id]) out += "    # currently playing";
                     out += "\n";
                 }
                 if(start+10 < list[message.guild.id].length) out += (list[message.guild.id].length-start-10) + " more";
@@ -101,11 +123,11 @@ editQueue = async (page, message) => {
                 await message.edit(out, {buttons: [firstpage, prevpage, nextpage, lastpage, openvideobutton]});
             }
         })
-        out_1 += (pos+1) + ".   ";
-        out_1 += list[message.guild.id][pos] + ((pos == last[message.guild.id]) ? "  # currently here" : "");
-        out_1 += "\n";
+        // out_1 += (pos+1) + ".   ";
+        // out_1 += list[message.guild.id][pos] + ((pos == last[message.guild.id]) ? "  # currently here" : "");
+        // out_1 += "\n";
     }
-    out_1 += "\n```";
+    // out_1 += "\n```";
     // msg = await message.edit(out_1, {buttons: [firstpage, prevpage, nextpage, lastpage, openvideobutton]});
     // return msg;
 }
@@ -162,7 +184,7 @@ bot.on("message", async message => {
                 key: googletoken,
                 part: 'snippet',
                 playlistId: id,
-                maxResults: 200
+                maxResults: 500
             }).then(async response => {
                 for(elm in response.data.items) {
                     // console.log(response.data.items[elm].snippet.resourceId.videoId);
@@ -322,32 +344,35 @@ bot.on("message", async message => {
             );
             return;
         }
+        playing = true;
+        if(!last.hasOwnProperty(message.guild.id)) playing = false;
         openvideobutton = new MessageButton().setStyle("url").setLabel("Open Track").setURL("https://youtu.be/"+list[message.guild.id][last[message.guild.id]]);
-        firstpage = new MessageButton().setStyle("grey").setID("firstPage").setLabel("<<");
-        prevpage = new MessageButton().setStyle("grey").setID("lastPage").setLabel(">>");
-        nextpage = new MessageButton().setStyle("grey").setID("prevPage").setLabel("<");
-        lastpage = new MessageButton().setStyle("grey").setID("nextPage").setLabel(">");
+        firstpage = new MessageButton().setStyle("blurple").setID("firstPage").setLabel("<<");
+        prevpage = new MessageButton().setStyle("blurple").setID("prevPage").setLabel("<");
+        nextpage = new MessageButton().setStyle("blurple").setID("nextPage").setLabel(">");
+        lastpage = new MessageButton().setStyle("blurple").setID("lastPage").setLabel(">>");
         out = "```glsl\n";
         out += "Queue contains:\n";
         current = "";
         start = 0;
-        start = last[message.guild.id]-5;
+        if(playing)
+            start = last[message.guild.id]-5;
         start_0 = start;
         start = (start < 0) ? 0 : start;
         // console.log(start);
         // console.log(start_0);
-        end = last[message.guild.id]+5-(start_0-start);
+        // end = last[message.guild.id]+5-(start_0-start);
         // console.log(end);
-        if(end > list[message.guild.id].length) {
-            end = list[message.guild.id].length;
-            if(list[message.guild.id].length < 10) start = 0;
-            start = end-10;
-        }
+        // if(end > list[message.guild.id].length) {
+        //     end = list[message.guild.id].length;
+        //     if(list[message.guild.id].length < 10) start = 0;
+        //     start = end-10;
+        // }
         // end = (end > list[message.guild.id].length-1) ? list[message.guild.id].length-1 : end;
         // console.log(list[message.guild.id].length-1);
         // console.log(end);
         // console.log(start);
-        if(start > 0) out += ""+start+" before\n";
+        if(playing) if(start > 0) out += ""+(start+1)+" before\n";
         // console.log(start);
         // console.log(end);
         // getYoutubeTitle(list[message.guild.id][last[message.guild.id]], function (err, title) {
@@ -355,24 +380,37 @@ bot.on("message", async message => {
         //     current = title;
         //     // console.log(current);
         // });
-        google.youtube('v3').videos.list({
-            key: googletoken,
-            part: 'snippet',
-            id: list[message.guild.id][last[message.guild.id]]
-        }).then(response => {
-            current = response.data.items[0].snippet.title;
-        })
-        finished = false;
-        all = [];
-        alltitle = [];
-        for(i=0;i<((list[message.guild.id].length<10) ? list[message.guild.id].length : 10);i++) {
-            alltitle[i] = "";
+        if(playing)
+            page_0 = Math.floor(last[message.guild.id] / 10);
+        else
+            page_0 = 0;
+        if(playing) if(last[message.guild.id] > list[message.guild.id].length-5) page_0 = Math.floor(list[message.guild.id].length/10)+1;
+        if(playing) {
+            google.youtube('v3').videos.list({
+                key: googletoken,
+                part: 'snippet',
+                id: list[message.guild.id][last[message.guild.id]]
+            }).then(response => {
+                current = response.data.items[0].snippet.title;
+            })
         }
-        for(i=0;i<((list[message.guild.id].length<10) ? list[message.guild.id].length : 10);i++) {
-            all[i] = false;
-        }
+        // finished = false;
+        // all = [];
+        // alltitle = [];
         ii = 0;
-        for(i=0;i<((list[message.guild.id].length<10) ? list[message.guild.id].length : 10);i++) {
+        btten = list[message.guild.id].length-1 >= 10;
+        names = [];
+        for(i_0 = 0; i_0 < ((btten) ? 10 : list[message.guild.id].length); i_0++) names[i_0] = "";
+        start = 10*page_0;
+        if(start+10 > list[message.guild.id].length) start = list[message.guild.id].length-10;
+        // for(i=0;i<((list[message.guild.id].length<10) ? list[message.guild.id].length : 10);i++) {
+        //     alltitle[i] = "";
+        // }
+        // for(i=0;i<((list[message.guild.id].length<10) ? list[message.guild.id].length : 10);i++) {
+        //     all[i] = false;
+        // }
+        // ii = 0;
+        for(i=0;i<names.length;i++) {
             google.youtube('v3').videos.list({
                 key: googletoken,
                 part: 'snippet',
@@ -382,20 +420,20 @@ bot.on("message", async message => {
                 ii++;
                 ytid = response.data.items[0].id;
                 ytidindex = list[message.guild.id].indexOf(ytid);
-                alltitle[ytidindex-start] = response.data.items[0].snippet.title;
-                all[ytidindex-start] = true;
-                if(alltitle.includes("")) finished = false;
+                rindex = ytidindex-start;
+                names[rindex] = response.data.items[0].snippet.title;
                 // console.log(alltitle.indexOf(""));
-                if(ii == 10) finished = true;
+                // if(ii == 10) finished = true;
                 // console.log(alltitle);
-                if(finished) {
-                    for(j=0;j<((list[message.guild.id].length<10) ? list[message.guild.id].length : 10);j++) {
-                        out += (start+j+1)+".   "+alltitle[j];
-                        if(j == last[message.guild.id]-start) out += "      # currently here";
+                if(ii==names.length) {
+                    for(j=0;j<names.length;j++) {
+                        out += (start+j+1)+".   "+names[j];
+                        if(playing) if(j == last[message.guild.id]-start) out += "      # currently here";
                         out += "\n";
                     }
                     // console.log(end);
                     // console.log(list[message.guild.id].length);
+                    end = start+10;
                     if(end < list[message.guild.id].length) out += (list[message.guild.id].length-end) + " more\n";
                     buttonlist = [];
                     buttonlist[buttonlist.length] = firstpage;
@@ -403,12 +441,16 @@ bot.on("message", async message => {
                     buttonlist[buttonlist.length] = nextpage;
                     buttonlist[buttonlist.length] = lastpage;
                     buttonlist[buttonlist.length] = openvideobutton;
-                    let msg = await message.channel.send(out+"```", {buttons: buttonlist});
                     possible = list[message.guild.id].length/10;
                     if(Math.floor(possible) != possible) possible = Math.floor(possible)+1;
                     else possible = Math.floor(possible);
-                    queuepos[message.guild.id] = Math.floor(last[message.guild.id] / 10);
-                    if(last[message.guild.id] > list[message.guild.id].length-5) queuepos[message.guild.id] = Math.floor(last[message.guild.id] / 10) + 1;
+                    if(playing)
+                        queuepos[message.guild.id] = Math.floor(last[message.guild.id] / 10);
+                    else
+                        queuepos[message.guild.id] = 0;
+                    if(playing) if(last[message.guild.id] > list[message.guild.id].length-5) queuepos[message.guild.id] = Math.floor(last[message.guild.id] / 10) + 1;
+                    editButtons(queuepos[message.guild.id], possible);
+                    let msg = await message.channel.send(out+"```", {buttons: buttonlist});
                     // const msg_0 = await newQueue(Math.floor(last[message.guild.id] / 10), message.channel);
                 }
             })
@@ -476,10 +518,14 @@ bot.on("message", async message => {
     } else if(message.content.toLowerCase().startsWith("?pause")) {
         if(player.hasOwnProperty(message.guild.id))
             player[message.guild.id].pause();
-    } else if(message.content.toLowerCase().startsWith("?stop")){
+    } else if(message.content.toLowerCase().startsWith("?stop")) {
         if(connection.hasOwnProperty(message.guild.id)) {
             last[message.guild.id] = 0;
             connection[message.guild.id].channel.leave();
+        }
+    } else if(message.content.toLowerCase().startsWith("?current")) {
+        if(!last.hasOwnProperty(message.guild.id)) {
+
         }
     }
 })
@@ -504,30 +550,32 @@ play = async (url, connection, serverId) => {
 }
 
 bot.on('clickButton', async button => {
-    console.log(button.id);
+    // console.log(button.id);
+    possible = list[button.message.guild.id].length/10;
+    if(Math.floor(possible) != possible) possible = Math.floor(possible)+1;
+    else possible = Math.floor(possible);
     if(button.id == "firstPage") {
         button.reply.defer();
         // console.log(queuepos[button.message.guild.id]);
-        editQueue(0, button.message);
+        pos = 0;
+        editButtons(pos, possible);
+        editQueue(pos, button.message);
     }
     if(button.id == "lastPage") {
         button.reply.defer();
-        possible = list[button.message.guild.id].length/10;
-        if(Math.floor(possible) != possible) possible = Math.floor(possible)+1;
-        else possible = Math.floor(possible);
         // console.log(queuepos[button.message.guild.id]);
-        editQueue(possible-1, button.message);
+        pos = possible-1;
+        editButtons(pos, possible);
+        editQueue(pos, button.message);
     }
     if(button.id == "nextPage") {
         button.reply.defer();
-        possible = list[button.message.guild.id].length/10;
-        if(Math.floor(possible) != possible) possible = Math.floor(possible)+1;
-        else possible = Math.floor(possible);
         // console.log(queuepos);
         pos = queuepos[button.message.guild.id]+1;
         pos = (pos>possible-1) ? possible-1 : pos;
         // console.log(queuepos[button.message.guild.id]);
         // console.log(pos);
+        editButtons(pos, possible);
         editQueue(pos, button.message);
     }
     if(button.id == "prevPage") {
@@ -536,6 +584,7 @@ bot.on('clickButton', async button => {
         pos = (pos < 0) ? 0 : pos;
         // console.log(queuepos[button.message.guild.id]);
         // console.log(pos);
+        editButtons(pos, possible);
         editQueue(pos, button.message);
     }
 });
