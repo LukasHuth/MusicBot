@@ -15,6 +15,8 @@ let prevpage = new MessageButton().setStyle("blurple").setID("prevPage").setLabe
 let nextpage = new MessageButton().setStyle("blurple").setID("nextPage").setLabel(">");
 let lastpage = new MessageButton().setStyle("blurple").setID("lastPage").setLabel(">>");
 
+prefix = "?";
+
 last = {};
 loop = {};
 list = {};
@@ -140,8 +142,8 @@ editQueue = async (page, message) => {
 
 bot.on("message", async message => {
     if(message.author.bot) return;
-    if(message.content.toLowerCase().startsWith('?play ')) {
-        link = message.content.replace("?play ", "");
+    if(message.content.toLowerCase().startsWith(prefix+'play ')) {
+        link = message.content.replace(prefix+"play ", "");
         if(!link.startsWith('https://youtu') && !link.startsWith('https://www.youtu')) {
             message.channel.send(
                 new Discord.MessageEmbed()
@@ -203,28 +205,29 @@ bot.on("message", async message => {
                 }
             })
         }
-    } else if(message.content.toLowerCase().startsWith("?help")) {
+    } else if(message.content.toLowerCase().startsWith(prefix+"help")) {
         commands= [
-            "?play [videourl | playlisturl]",
-            "?pause",
-            "?queue",
-            "?load <name>",
-            "?save <name>",
-            "?jumpto <position>",
-            "?next",
-            "?clear",
-            "?loop",
-            "?stop",
-            "?help"
+            prefix+"play [videourl | playlisturl]",
+            prefix+"pause",
+            prefix+"queue",
+            prefix+"load <name>",
+            prefix+"save <name>",
+            prefix+"jumpto <position>",
+            prefix+"next",
+            prefix+"listqueues   alias  "+prefix+"ls",
+            prefix+"clear",
+            prefix+"loop",
+            prefix+"stop",
+            prefix+"help"
         ];
         out = "Available commands:\n";
         for(elm in commands) {
             out += "  -"+commands[elm] + "\n";
         }
         message.channel.send(out);
-    } else if(message.content.toLowerCase().startsWith("?save")) {
+    } else if(message.content.toLowerCase().startsWith(prefix+"save")) {
         // console.log("test");
-        queuename = message.content.toLowerCase().replace("?save ", "");
+        queuename = message.content.toLowerCase().replace(prefix+"save ", "");
         // console.log(queuename);
         let rawdata = fs.readFileSync('queue.json');
         let data = JSON.parse(rawdata);
@@ -237,8 +240,8 @@ bot.on("message", async message => {
         data.queues[message.guild.id][queuename] = list[message.guild.id];
         // console.log(data);
         fs.writeFileSync('queue.json', JSON.stringify(data));
-    } else if(message.content.toLowerCase().startsWith("?load ")) {
-        queuename = message.content.toLowerCase().replace("?load ", "");
+    } else if(message.content.toLowerCase().startsWith(prefix+"load ")) {
+        queuename = message.content.toLowerCase().replace(prefix+"load ", "");
         let rawdata = fs.readFileSync('queue.json');
         let data = JSON.parse(rawdata);
         if(data.queues.hasOwnProperty(message.guild.id)) {
@@ -246,8 +249,22 @@ bot.on("message", async message => {
                 list[message.guild.id] = data.queues[message.guild.id][queuename];
             }
         }
-    } else if(message.content.toLowerCase().startsWith("?jumpto ")) {
-        number = message.content.toLowerCase().replace("?jumpto ", "");
+    } else if(message.content.toLowerCase().startsWith(prefix+"listqueues") || message.content.toLowerCase().startsWith(prefix+"ls")) {
+        let rawdata = fs.readFileSync('queue.json');
+        let data = JSON.parse(rawdata);
+        out = "```";
+        out += "Saved Queues:\n"
+        if(data.queues.hasOwnProperty(message.guild.id)) {
+            if(data.servers[message.guild.id].includes(queuename)) {
+                for(item in data.servers[message.guild.id]) {
+                    out += data.servers[message.guild.id][item] + "    ("+data.queues[message.guild.id][data.servers[message.guild.id][item]].length+" tracks)\n";
+                }
+            }
+        }
+        out += "```";
+        message.channel.send(out);
+    } else if(message.content.toLowerCase().startsWith(prefix+"jumpto ")) {
+        number = message.content.toLowerCase().replace(prefix+"jumpto ", "");
         if(isNaN(number)) {
             message.channel.send(
                 new Discord.MessageEmbed()
@@ -293,7 +310,7 @@ bot.on("message", async message => {
         connection[message.guild.id] = await message.member.voice.channel.join();
         // last[message.guild.id] = 0;
         play(list[message.guild.id][last[message.guild.id]], connection[message.guild.id], message.guild.id);
-    } else if(message.content.toLowerCase().startsWith('?next')) {
+    } else if(message.content.toLowerCase().startsWith(prefix+'next')) {
         if(!list.hasOwnProperty(message.guild.id)) {
             message.channel.send(
                 new Discord.MessageEmbed()
@@ -328,7 +345,7 @@ bot.on("message", async message => {
         connection[message.guild.id] = await message.member.voice.channel.join();
         last[message.guild.id]++;
         play(list[message.guild.id][last[message.guild.id]], connection[message.guild.id], message.guild.id);
-    } else if(message.content.toLowerCase().startsWith("?queue")) {
+    } else if(message.content.toLowerCase().startsWith(prefix+"queue")) {
         // important:  same queue orde as editQueue
         if(!list.hasOwnProperty(message.guild.id)) {
             message.channel.send(
@@ -420,8 +437,7 @@ bot.on("message", async message => {
             google.youtube('v3').videos.list({
                 key: googletoken,
                 part: 'snippet',
-                id: list[message.guild.id][start+i],
-                maxResults: 200
+                id: list[message.guild.id][start+i]
             }).then(async response => {
                 ii++;
                 ytid = response.data.items[0].id;
@@ -461,7 +477,7 @@ bot.on("message", async message => {
                 }
             })
         }
-    } else if(message.content.toLowerCase().startsWith('?play')) {
+    } else if(message.content.toLowerCase().startsWith(prefix+'play')) {
         if(player.hasOwnProperty(message.guild.id)) player[message.guild.id].resume();
         if(!list.hasOwnProperty(message.guild.id)) {
             message.channel.send(
@@ -497,11 +513,11 @@ bot.on("message", async message => {
         connection[message.guild.id] = await message.member.voice.channel.join();
         last[message.guild.id] = 0;
         play(list[message.guild.id][last[message.guild.id]], connection[message.guild.id], message.guild.id);
-    } else if(message.content.toLowerCase().startsWith("?clear")){
+    } else if(message.content.toLowerCase().startsWith(prefix+"clear")){
         if(list.hasOwnProperty(message.guild.id)) {
             list[message.guild.id] = [];
         }
-    } else if(message.content.toLowerCase().startsWith("?loop")) {
+    } else if(message.content.toLowerCase().startsWith(prefix+"loop")) {
         if(loop[message.guild.id]) {
             loop[message.guild.id] = false;
             message.channel.send(
@@ -521,20 +537,107 @@ bot.on("message", async message => {
                 .setDescription(``)
             );
         }
-    } else if(message.content.toLowerCase().startsWith("?pause")) {
+    } else if(message.content.toLowerCase().startsWith(prefix+"pause")) {
         if(player.hasOwnProperty(message.guild.id))
             player[message.guild.id].pause();
-    } else if(message.content.toLowerCase().startsWith("?stop")) {
+    } else if(message.content.toLowerCase().startsWith(prefix+"stop")) {
         if(connection.hasOwnProperty(message.guild.id)) {
             last[message.guild.id] = 0;
             connection[message.guild.id].channel.leave();
         }
-    } else if(message.content.toLowerCase().startsWith("?current")) {
+    } else if(message.content.toLowerCase().startsWith(prefix+"current")) {
         if(!last.hasOwnProperty(message.guild.id)) {
-
+            message.channel.send(
+                new Discord.MessageEmbed()
+                .setColor("#FF0000")
+                .setTitle(`Nothing playing right now!`)
+                .setThumbnail(message.author.displayAvatarURL())
+                .setDescription(``)
+            );
         }
+        if(list[message.guild.id].length == 0) {
+            message.channel.send(
+                new Discord.MessageEmbed()
+                .setColor("#FF0000")
+                .setTitle(`Nothing playing right now!`)
+                .setThumbnail(message.author.displayAvatarURL())
+                .setDescription(``)
+            );
+        }
+        // console.log(list[message.guild.id][last[message.guild.id]]);
+        google.youtube('v3').videos.list({
+            key: googletoken,
+            part: 'snippet,contentDetails,statistics',
+            id: list[message.guild.id][last[message.guild.id]]
+        }).then(response => {
+            res = response;
+            data = res.data;
+            // console.log(data);
+            item = data.items[0];
+            let videoLink = new MessageButton().setStyle("url").setLabel("Open Video").setURL("https://youtu.be/"+item.id);
+            let channelLink = new MessageButton().setStyle("url").setLabel("View Channel").setURL("https://www.youtube.com/channel/"+item.snippet.channelId);
+            out = "```Currently Playing:\n";
+            out += "title: " + item.snippet.title + "\n";
+            time = "";
+            rest = item.contentDetails.duration.replace("PT", "");
+            if(rest.includes("H")) {
+                time += rest.split("H")[0] + ":";
+                rest = rest.split("H")[1];
+            }
+            if(rest.includes("M")) {
+                num = rest.split("M")[0];
+                if(Number(num)<10) num = "0"+num;
+                time += num + ":";
+                rest = rest.split("M")[1];
+            } else {
+                if(time != "") time += "00:";
+            }
+            if(rest.includes("S")) {
+                num = rest.split("S")[0];
+                if(Number(num)<10) num = "0"+num;
+                time += num;
+            } else {
+                if(time != "") time += "00";
+            }
+            out += "duration: " + time + "\n";
+            out += "Channel: " + item.snippet.channelTitle + "\n";
+            out += "Views: " + splitnum(item.statistics.viewCount) + "\n";
+            out += "Likes: " + splitnum(item.statistics.likeCount) + "\n";
+            out += "Dislikes: " + splitnum(item.statistics.dislikeCount) + "\n";
+            out += "```";
+            buttons = [];
+            buttons[buttons.length] = videoLink;
+            buttons[buttons.length] = channelLink;
+            message.channel.send(out, {buttons: buttons});
+        })
+        /*
+            Currently Playing:
+            title:【AMV】- Toca Toca HD
+            duration: 3:42
+            Channel: Như Huỳnh
+            views: 924,576
+            likes: 22,164
+            dislikes: 318
+        */
     }
 })
+
+splitnum = num => {
+    nstr = "";
+    for(i=0;i<num.length;i++) {
+        if((i)%3 == 0 && i != 0) nstr += ",";
+        // console.log(i);
+        // console.log((i)%3 == 0);
+        nstr += num[num.length-1-i];
+    }
+    o = "";
+    for(i=0;i<nstr.length;i++) {
+        o += nstr[nstr.length-1-i];
+    }
+    // console.log(o);
+    return o;
+}
+
 
 play = async (url, connection, serverId) => {
     // console.log(url);

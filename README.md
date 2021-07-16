@@ -27,3 +27,13 @@
 ## ?next
 
 ### play next track
+
+## ?current
+
+### list infos about current track
+
+## todo
+
+## ?listsaved alias ?ls
+
+### list saved queues
