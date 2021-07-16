@@ -32,6 +32,12 @@ queuepos = {};
 
 */
 
+/*
+
+    command to list saved queues
+
+*/
+
 bot.on("ready", () => {
     console.log(`${bot.user.username}`);
 });
