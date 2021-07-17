@@ -229,6 +229,8 @@ bot.on("message", async message => {
             prefix+"save <name>",
             prefix+"jumpto <position>",
             prefix+"next",
+            prefix+"back",
+            prefix+"shuffle",
             prefix+"listqueues   alias  "+prefix+"ls",
             prefix+"clear",
             prefix+"loop",
@@ -373,6 +375,80 @@ bot.on("message", async message => {
             }
             last[message.guild.id]=0;
         }
+        play(list[message.guild.id][last[message.guild.id]], connection[message.guild.id], message.guild.id);
+    } else if(message.content.toLowerCase().startsWith(prefix+'back')) {
+        if(!list.hasOwnProperty(message.guild.id)) {
+            message.channel.send(
+                new Discord.MessageEmbed()
+                .setColor("#FF0000")
+                .setTitle(`Queue is empty`)
+                .setThumbnail(message.author.displayAvatarURL())
+                .setDescription(`Add music to queue to play music`)
+            );
+            return;
+        }
+        if(list[message.guild.id].length == 0) {
+            message.channel.send(
+                new Discord.MessageEmbed()
+                .setColor("#FF0000")
+                .setTitle(`Queue is empty`)
+                .setThumbnail(message.author.displayAvatarURL())
+                .setDescription(`Add music to queue to play music`)
+            );
+            return;
+        }
+        if(!message.member.voice.channelID) {
+            message.channel.send(
+                new Discord.MessageEmbed()
+                .setColor("#FF0000")
+                .setTitle(`You must be in a voice Channel`)
+                .setThumbnail(message.author.displayAvatarURL())
+                .setDescription(`Please join a voice to play audio`)
+            );
+            return;
+        }
+
+        connection[message.guild.id] = await message.member.voice.channel.join();
+        var_play = true;
+        if(last[message.guild.id]-1 != 0) last[message.guild.id]--;
+        else{
+            if(!loop.hasOwnProperty(message.guild.id)) {
+                message.channel.send("```Reaced start of queue and stopped playing!```");
+                connection[message.guild.id].channel.leave();
+                return;
+            }
+            if(loop[message.guild.id] == false) {
+                message.channel.send("```Reaced start of queue and stopped playing!```");
+                connection[message.guild.id].channel.leave();
+                return;
+            }
+            last[message.guild.id]=list[message.guild.id].length-1;
+        }
+        play(list[message.guild.id][last[message.guild.id]], connection[message.guild.id], message.guild.id);
+    } else if(message.content.toLowerCase().startsWith(prefix+'shuffle')) {
+        if(!list.hasOwnProperty(message.guild.id)) {
+            message.channel.send(
+                new Discord.MessageEmbed()
+                .setColor("#FF0000")
+                .setTitle(`Queue is empty`)
+                .setThumbnail(message.author.displayAvatarURL())
+                .setDescription(`Add music to queue to play music`)
+            );
+            return;
+        }
+        if(list[message.guild.id].length == 0) {
+            message.channel.send(
+                new Discord.MessageEmbed()
+                .setColor("#FF0000")
+                .setTitle(`Queue is empty`)
+                .setThumbnail(message.author.displayAvatarURL())
+                .setDescription(`Add music to queue to play music`)
+            );
+            return;
+        }
+
+        shuffle(list[message.guild.id]);
+
         play(list[message.guild.id][last[message.guild.id]], connection[message.guild.id], message.guild.id);
     } else if(message.content.toLowerCase().startsWith(prefix+"queue")) {
         // important:  same queue orde as editQueue
@@ -665,10 +741,23 @@ stringsize = (size, str) => {
     return str;
 }
 
+shuffle = array => {
+    var currentIndex = array.length,  randomIndex;
+    while (0 !== currentIndex) {
+  
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+  
+        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+    }
+  
+    return array;
+}
+  
 play = async (url, connection, serverId) => {
     // console.log(url);
     const stream = await ytdl(url, {filter:'audioonly'});
-    player[serverId] = connection.play(stream, {seek: 0, volume: 0.5})
+    player[serverId] = connection.play(stream, {seek: 0, volume: 0.9})
         .on('finish', () => {
             last[serverId]++;
             if(loop[serverId]) {
