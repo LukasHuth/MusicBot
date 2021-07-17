@@ -1,6 +1,6 @@
 const Discord = require("discord.js");
 const fs = require("fs");
-const { token } = require("./botconfig");
+const { token, prefix } = require("./botconfig");
 const ytdl = require("ytdl-core");
 const getYoutubeTitle = require('get-youtube-title');
 const { googletoken } = require("./settings.json")
@@ -15,7 +15,7 @@ let prevpage = new MessageButton().setStyle("blurple").setID("prevPage").setLabe
 let nextpage = new MessageButton().setStyle("blurple").setID("nextPage").setLabel(">");
 let lastpage = new MessageButton().setStyle("blurple").setID("lastPage").setLabel(">>");
 
-prefix = "?";
+// prefix = "?";
 
 last = {};
 loop = {};
@@ -108,7 +108,7 @@ editQueue = async (page, message) => {
         google.youtube('v3').videos.list({
             key: googletoken,
             id: list[message.guild.id][pos],
-            part: 'snippet',
+            part: 'snippet,contentDetails',
         }).then(async response => {
             ii++;
             ytidtitle = response.data.items[0].snippet.title;
@@ -118,7 +118,28 @@ editQueue = async (page, message) => {
             idpos = list[message.guild.id].indexOf(ytid)-(start);
             // console.log(idpos);
             // console.log(ytid);
-            names[idpos] = ytidtitle;
+            time = "";
+            rest = response.data.items[0].contentDetails.duration.replace("PT", "");
+            if(rest.includes("H")) {
+                time += rest.split("H")[0] + ":";
+                rest = rest.split("H")[1];
+            }
+            if(rest.includes("M")) {
+                num = rest.split("M")[0];
+                if(Number(num)<10) num = "0"+num;
+                time += num + ":";
+                rest = rest.split("M")[1];
+            } else {
+                if(time != "") time += "00:";
+            }
+            if(rest.includes("S")) {
+                num = rest.split("S")[0];
+                if(Number(num)<10) num = "0"+num;
+                time += num;
+            } else {
+                if(time != "") time += "00";
+            }
+            names[idpos] = stringsize(30, ytidtitle) + "       " + time;
             if(ii == names.length) {
                 if(start > 0) out += start + " before\n";
                 for(j_1 = 0; j_1 < names.length; j_1++) {
@@ -131,13 +152,7 @@ editQueue = async (page, message) => {
                 await message.edit(out, {buttons: [firstpage, prevpage, nextpage, lastpage, openvideobutton]});
             }
         })
-        // out_1 += (pos+1) + ".   ";
-        // out_1 += list[message.guild.id][pos] + ((pos == last[message.guild.id]) ? "  # currently here" : "");
-        // out_1 += "\n";
     }
-    // out_1 += "\n```";
-    // msg = await message.edit(out_1, {buttons: [firstpage, prevpage, nextpage, lastpage, openvideobutton]});
-    // return msg;
 }
 
 bot.on("message", async message => {
@@ -343,7 +358,21 @@ bot.on("message", async message => {
         }
 
         connection[message.guild.id] = await message.member.voice.channel.join();
-        last[message.guild.id]++;
+        var_play = true;
+        if(last[message.guild.id]+1 < list[message.guild.id].length) last[message.guild.id]++;
+        else{
+            if(!loop.hasOwnProperty(message.guild.id)) {
+                message.channel.send("```Reaced end of queue and stopped playing!```");
+                connection[message.guild.id].channel.leave();
+                return;
+            }
+            if(loop[message.guild.id] == false) {
+                message.channel.send("```Reaced end of queue and stopped playing!```");
+                connection[message.guild.id].channel.leave();
+                return;
+            }
+            last[message.guild.id]=0;
+        }
         play(list[message.guild.id][last[message.guild.id]], connection[message.guild.id], message.guild.id);
     } else if(message.content.toLowerCase().startsWith(prefix+"queue")) {
         // important:  same queue orde as editQueue
@@ -376,80 +405,59 @@ bot.on("message", async message => {
         lastpage = new MessageButton().setStyle("blurple").setID("lastPage").setLabel(">>");
         out = "```glsl\n";
         out += "Queue contains:\n";
-        current = "";
+        // current = "";
         start = 0;
         if(playing)
             start = last[message.guild.id]-5;
         start_0 = start;
         start = (start < 0) ? 0 : start;
-        // console.log(start);
-        // console.log(start_0);
-        // end = last[message.guild.id]+5-(start_0-start);
-        // console.log(end);
-        // if(end > list[message.guild.id].length) {
-        //     end = list[message.guild.id].length;
-        //     if(list[message.guild.id].length < 10) start = 0;
-        //     start = end-10;
-        // }
-        // end = (end > list[message.guild.id].length-1) ? list[message.guild.id].length-1 : end;
-        // console.log(list[message.guild.id].length-1);
-        // console.log(end);
-        // console.log(start);
         if(playing) if(start > 0) out += ""+(start+1)+" before\n";
-        // console.log(start);
-        // console.log(end);
-        // getYoutubeTitle(list[message.guild.id][last[message.guild.id]], function (err, title) {
-        //     if(err) return console.log(err);
-        //     current = title;
-        //     // console.log(current);
-        // });
         if(playing)
             page_0 = Math.floor(last[message.guild.id] / 10);
         else
             page_0 = 0;
         if(playing) if(last[message.guild.id] > list[message.guild.id].length-5) page_0 = Math.floor(list[message.guild.id].length/10)+1;
-        if(playing) {
-            google.youtube('v3').videos.list({
-                key: googletoken,
-                part: 'snippet',
-                id: list[message.guild.id][last[message.guild.id]]
-            }).then(response => {
-                current = response.data.items[0].snippet.title;
-            })
-        }
-        // finished = false;
-        // all = [];
-        // alltitle = [];
         ii = 0;
         btten = list[message.guild.id].length-1 >= 10;
         names = [];
         for(i_0 = 0; i_0 < ((btten) ? 10 : list[message.guild.id].length); i_0++) names[i_0] = "";
         start = 10*page_0;
         if(start+10 > list[message.guild.id].length) start = list[message.guild.id].length-10;
-        // for(i=0;i<((list[message.guild.id].length<10) ? list[message.guild.id].length : 10);i++) {
-        //     alltitle[i] = "";
-        // }
-        // for(i=0;i<((list[message.guild.id].length<10) ? list[message.guild.id].length : 10);i++) {
-        //     all[i] = false;
-        // }
-        // ii = 0;
         for(i=0;i<names.length;i++) {
             google.youtube('v3').videos.list({
                 key: googletoken,
-                part: 'snippet',
+                part: 'snippet,contentDetails',
                 id: list[message.guild.id][start+i]
             }).then(async response => {
                 ii++;
                 ytid = response.data.items[0].id;
                 ytidindex = list[message.guild.id].indexOf(ytid);
                 rindex = ytidindex-start;
-                names[rindex] = response.data.items[0].snippet.title;
-                // console.log(alltitle.indexOf(""));
-                // if(ii == 10) finished = true;
-                // console.log(alltitle);
+                time = "";
+                rest = response.data.items[0].contentDetails.duration.replace("PT", "");
+                if(rest.includes("H")) {
+                    time += rest.split("H")[0] + ":";
+                    rest = rest.split("H")[1];
+                }
+                if(rest.includes("M")) {
+                    num = rest.split("M")[0];
+                    if(Number(num)<10) num = "0"+num;
+                    time += num + ":";
+                    rest = rest.split("M")[1];
+                } else {
+                    if(time != "") time += "00:";
+                }
+                if(rest.includes("S")) {
+                    num = rest.split("S")[0];
+                    if(Number(num)<10) num = "0"+num;
+                    time += num;
+                } else {
+                    if(time != "") time += "00";
+                }
+                names[rindex] = stringsize(30, response.data.items[0].snippet.title) + "       " + time;
                 if(ii==names.length) {
                     for(j=0;j<names.length;j++) {
-                        out += (start+j+1)+".   "+names[j];
+                        out += (start+j+1)+".   " + names[j];
                         if(playing) if(j == last[message.guild.id]-start) out += "      # currently here";
                         out += "\n";
                     }
@@ -638,6 +646,24 @@ splitnum = num => {
     return o;
 }
 
+stringsize = (size, str) => {
+    if(str.length < size) {
+        for(i=0;i<(size-str.length);i++) {
+            str += " ";
+        }
+    } else if(str.length > size) {
+        buf = str;
+        str = "";
+        for(i=0;i<size;i++) {
+            if(i<size-3) {
+                str += buf[i];
+            } else {
+                str += ".";
+            }
+        }
+    }
+    return str;
+}
 
 play = async (url, connection, serverId) => {
     // console.log(url);

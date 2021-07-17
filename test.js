@@ -1,19 +1,21 @@
 
-splitnum = num => {
-    nstr = "";
-    for(i=0;i<num.length;i++) {
-        if((i)%3 == 0 && i != 0) nstr += ",";
-        // console.log(i);
-        // console.log((i)%3 == 0);
-        nstr += num[num.length-1-i];
+stringsize = (size, str) => {
+    if(str.length < size) {
+        for(i=0;i<(size-str.length);i++) {
+            str += " ";
+        }
+    } else if(str.length > size) {
+        buf = str;
+        str = "";
+        for(i=0;i<size;i++) {
+            if(i<size-3) {
+                str += buf[i];
+            } else {
+                str += ".";
+            }
+        }
     }
-    o = "";
-    for(i=0;i<nstr.length;i++) {
-        o += nstr[nstr.length-1-i];
-    }
-    // console.log(o);
-    return o;
+    return str;
 }
 
-splitnum("217792");
-splitnum("21779");
+console.log(stringsize(15, "this is a test string"));
