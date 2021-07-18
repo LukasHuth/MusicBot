@@ -19,6 +19,7 @@ let lastpage = new MessageButton().setStyle("blurple").setID("lastPage").setLabe
 
 last = {};
 loop = {};
+looptrack = {};
 list = {};
 player = {};
 
@@ -228,7 +229,7 @@ bot.on("message", async message => {
             prefix+"load <name>",
             prefix+"save <name>",
             prefix+"jumpto <position>",
-            prefix+"next",
+            prefix+"next   alias  "+prefix+"skip",
             prefix+"back",
             prefix+"shuffle",
             prefix+"listqueues   alias  "+prefix+"ls",
@@ -327,7 +328,7 @@ bot.on("message", async message => {
         connection[message.guild.id] = await message.member.voice.channel.join();
         // last[message.guild.id] = 0;
         play(list[message.guild.id][last[message.guild.id]], connection[message.guild.id], message.guild.id);
-    } else if(message.content.toLowerCase().startsWith(prefix+'next')) {
+    } else if(message.content.toLowerCase().startsWith(prefix+'next') || message.content.toLowerCase().startsWith(prefix+'skip')) {
         if(!list.hasOwnProperty(message.guild.id)) {
             message.channel.send(
                 new Discord.MessageEmbed()
@@ -602,24 +603,68 @@ bot.on("message", async message => {
             list[message.guild.id] = [];
         }
     } else if(message.content.toLowerCase().startsWith(prefix+"loop")) {
-        if(loop[message.guild.id]) {
-            loop[message.guild.id] = false;
-            message.channel.send(
-                new Discord.MessageEmbed()
-                .setColor("#FF0000")
-                .setTitle(`Loop disabled`)
-                .setThumbnail(message.author.displayAvatarURL())
-                .setDescription(``)
-            );
-        } else {
-            loop[message.guild.id] = true;
-            message.channel.send(
-                new Discord.MessageEmbed()
-                .setColor("#00FF00")
-                .setTitle(`Loop Enabled`)
-                .setThumbnail(message.author.displayAvatarURL())
-                .setDescription(``)
-            );
+        if(!message.content.toLowerCase().includes(" ") || message.content.toLowerCase().includes("queue")) {
+            if(!loop.hasOwnProperty(message.guild.id)) {
+                loop[message.guild.id] = true;
+                message.channel.send(
+                    new Discord.MessageEmbed()
+                    .setColor("#00FF00")
+                    .setTitle(`Loop Enabled`)
+                    .setThumbnail(message.author.displayAvatarURL())
+                    .setDescription(``)
+                );
+                return;
+            }
+            if(loop[message.guild.id]) {
+                loop[message.guild.id] = false;
+                message.channel.send(
+                    new Discord.MessageEmbed()
+                    .setColor("#FF0000")
+                    .setTitle(`Loop disabled`)
+                    .setThumbnail(message.author.displayAvatarURL())
+                    .setDescription(``)
+                );
+            } else {
+                loop[message.guild.id] = true;
+                message.channel.send(
+                    new Discord.MessageEmbed()
+                    .setColor("#00FF00")
+                    .setTitle(`Loop Enabled`)
+                    .setThumbnail(message.author.displayAvatarURL())
+                    .setDescription(``)
+                );
+            }
+        } else if(message.content.toLowerCase().includes("track")) {
+            if(!looptrack.hasOwnProperty(message.guild.id)) {
+                loop[message.guild.id] = true;
+                message.channel.send(
+                    new Discord.MessageEmbed()
+                    .setColor("#00FF00")
+                    .setTitle(`Loop Enabled`)
+                    .setThumbnail(message.author.displayAvatarURL())
+                    .setDescription(``)
+                );
+                return;
+            }
+            if(looptrack[message.guild.id]) {
+                looptrack[message.guild.id] = false;
+                message.channel.send(
+                    new Discord.MessageEmbed()
+                    .setColor("#FF0000")
+                    .setTitle(`Loop disabled`)
+                    .setThumbnail(message.author.displayAvatarURL())
+                    .setDescription(``)
+                );
+            } else {
+                looptrack[message.guild.id] = true;
+                message.channel.send(
+                    new Discord.MessageEmbed()
+                    .setColor("#00FF00")
+                    .setTitle(`Loop Enabled`)
+                    .setThumbnail(message.author.displayAvatarURL())
+                    .setDescription(``)
+                );
+            }
         }
     } else if(message.content.toLowerCase().startsWith(prefix+"pause")) {
         if(player.hasOwnProperty(message.guild.id))
@@ -759,7 +804,8 @@ play = async (url, connection, serverId) => {
     const stream = await ytdl(url, {filter:'audioonly'});
     player[serverId] = connection.play(stream, {seek: 0, volume: 0.9})
         .on('finish', () => {
-            last[serverId]++;
+            if(!looptrack.hasOwnProperty(serverId)) last[serverId]++;
+            if(looptrack.hasOwnProperty(serverId)) if(!looptrack[serverId]) last[serverId]++;
             if(loop[serverId]) {
                 if(last[serverId] == list[serverId].length) last[serverId] = 0;
                 play(list[serverId][last[serverId]], connection, serverId);
