@@ -1,13 +1,18 @@
+// Discord import
 const Discord = require("discord.js");
-const fs = require("fs");
-const { token, prefix } = require("./botconfig");
-const ytdl = require("ytdl-core");
-const getYoutubeTitle = require('get-youtube-title');
-const { googletoken } = require("./settings.json")
-const { google } = require("googleapis");
 const { MessageButton } = require("discord-buttons");
 const bot = new Discord.Client();
 require("discord-buttons")(bot);
+// google | youtube import
+const ytdl = require("ytdl-core");
+const getYoutubeTitle = require('get-youtube-title');
+const { google } = require("googleapis");
+const youtube = google.youtube('v3');
+// token | settings import
+const { googletoken } = require("./settings.json")
+const { token, prefix } = require("./botconfig");
+// other import
+const fs = require("fs");
 
 let openvideobutton;
 let firstpage = new MessageButton().setStyle("blurple").setID("firstPage").setLabel("<<");
@@ -161,12 +166,7 @@ bot.on("message", async message => {
     if(message.content.toLowerCase().startsWith(prefix+'play ')) {
         link = message.content.replace(prefix+"play ", "");
         if(!link.startsWith('https://youtu') && !link.startsWith('https://www.youtu')) {
-            message.channel.send(
-                new Discord.MessageEmbed()
-                .setColor("#FF0000")
-                .setTitle(`You have to use a youtube link.`)
-                .setThumbnail(message.author.displayAvatarURL())
-            );
+            searchAndPlay(link, message);
             return;
         }
         id = link.split("//")[1];
@@ -858,5 +858,73 @@ bot.on('clickButton', async button => {
         editQueue(pos, button.message);
     }
 });
+
+addPlaylist = (id, message) => {
+    youtube.playlistItems.list({
+        key: googletoken,
+        playlistId: id,
+        part: 'snippet',
+        maxResults: 500
+    }).then(async response => {
+        // console.log(response.data);
+        for(elm in response.data.items) {
+            // console.log(response.data.items[elm].snippet.resourceId.videoId);
+            // console.log(response.data.items[elm].snippet.resourceId.videoId);
+            addMusic(response.data.items[elm].snippet.resourceId.videoId, message.guild.id);
+        }
+    })
+}
+
+searchAndPlay = async (link, message) => {
+    q = link;
+    vid = "";
+    start = false;
+    playlist = false;
+    console.log()
+    try {
+        youtube.search.list({
+            key: googletoken,
+            q: q,
+            part: 'snippet',
+            maxResults: 1
+        }).then(async response => {
+            // console.log(response.data);
+            channel = response.data.items[0].id.kind == "youtube#channel";
+            if(response.data.items[0].id.kind == "youtube#video")
+                vid = response.data.items[0].id.videoId;
+            if(response.data.items[0].id.kind == "youtube#playlist")
+                vid = response.data.items[0].id.playlistId;
+            playlist = response.data.items[0].id.kind == "youtube#playlist";
+            if(playlist) {
+               addPlaylist(vid, message);
+            //    console.log("add playlist");
+            } else if(channel) {
+                // found channel
+            } else {
+                addMusic(vid, message.guild.id);
+            }
+            if(!message.member.voice.channelID) {
+                message.channel.send(
+                    new Discord.MessageEmbed()
+                    .setColor("#FF0000")
+                    .setTitle(`You must be in a voice Channel`)
+                    .setThumbnail(message.author.displayAvatarURL())
+                    .setDescription(`Please join a voice to play audio`)
+                );
+                return;
+            }
+            if(!list.hasOwnProperty(message.guild.id)) return;
+            if(list[message.guild.id].length == 0) return;
+            // console.log(list[message.guild.id]);
+            if(!connection.hasOwnProperty(message.guild.id)) {
+                connection[message.guild.id] = await message.member.voice.channel.join();
+                last[message.guild.id] = 0;
+                play(list[message.guild.id][last[message.guild.id]], connection[message.guild.id], message.guild.id);
+            }
+        });
+    } catch(e) {
+        vid = "null";
+    }
+}
 
 bot.login(token);
