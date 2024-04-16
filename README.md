@@ -1,6 +1,11 @@
 # Discord Music Bot
 
+## Important installed Programs
+- Node / npm
+- ffmpeg
+
 ## How to use
+
 ```bash
 git clone git@github.com:LukasHuth/MusicBot.git
 cd MusicBot
@@ -11,7 +16,7 @@ npm update
 touch settings.json
 touch botconfig.json
 ```
-add followinf data to `settings.json`
+add following data to `settings.json`
 ```json
 {
     "googletoken": "<google api token>"
